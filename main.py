@@ -64,7 +64,7 @@ def perform_xbreed(NUMLIST,FIRST_VALUE,SECOND_VALUE):
 	SECOND_VALUE=str(SECOND_VALUE)
 	XOVERSPOT=random.randint(0,9)
 	HEADER=str(FIRST_VALUE[0:XOVERSPOT])
-	FOOTER=str(SECOND_VALUE[XOVERSPOT:10])
+	FOOTER=str(SECOND_VALUE[XOVERSPOT:11]).zfill(11-XOVERSPOT)
 	return str(HEADER)+str(FOOTER)
 
 def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
@@ -74,9 +74,7 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 		except KeyError:
 			pass
 	for val in NEWVALUES:
-		if len(val)< 10:
-			epdb.st()
-			NUMLIST[val]=0
+		NUMLIST[val]=0
 
 	return NUMLIST
 
@@ -95,7 +93,9 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 		if NUMLIST[row] > (MINDIST+1):
 			if  random.random() < MUTATIONRATE:
 				NEWVAL=mutate(NUMLIST,MATCHLIST)
-				NEWVALUES.append(NEWVAL) 
+				if len(NEWVAL)< 10:
+					epdb.st()
+					NEWVALUES.append(NEWVAL) 
 			elif random.randint(0,1)==0:
 				NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
 			else:
@@ -116,9 +116,10 @@ def mutate(NUMLIST,MATCHLIST):
 	SEED=random.randint(0,len(MATCHLIST)-1)
 	FIRST_VALUE=str(MATCHLIST[SEED])
 	MUTATESPOT=random.randint(1,8)
+	NEWSPOT=MUTATESPOT+1
 	NEWVAL=random.randint(0,9)
-	HEADER=FIRST_VALUE[0:MUTATESPOT-1]
-	FOOTER=FIRST_VALUE[MUTATESPOT+1:10]
+	HEADER=FIRST_VALUE[0:MUTATESPOT]
+	FOOTER=FIRST_VALUE[NEWSPOT:10]
 	if NEWVAL==10:
 		NEWVAL=9
 	
