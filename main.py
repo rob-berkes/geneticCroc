@@ -92,7 +92,7 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 			pass
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
-def choose_swap_method(NUMLIST,MATCHLIST):
+def choose_swap_method(NUMLIST,MATCHLIST,row):
 	try:
 		SDEX=random.randint(0,len(MATCHLIST)-1)
 	except ValueError:
@@ -126,7 +126,7 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
 				NEWVALUES.append(NEWVAL) 
 			elif random.randint(0,1)==1:
-				NUMLIST,MATCHLIST=choose_swap_method(NUMLIST,MATCHLIST)
+				NUMLIST,MATCHLIST=choose_swap_method(NUMLIST,MATCHLIST,row)
 			OLDVALUES.append(row)
 	SECOND_VALUE_SET=False
 	FIRST_VALUE_SET=False
@@ -164,16 +164,14 @@ def calc_distances(NUMLIST):
 		if len(phone)>9:
 	#		DISTANCE=sum(phone,'AC')
 	#		DISTANCE+=sum(phone,'CC')
-	#		DISTANCE=sum(phone,'PN')
-	#		DISTANCE=number_count(7,phone)
+			DISTANCE=sum(phone,'PN')
+			DISTANCE+=number_count(7,phone)
 	#		DISTANCE+=number_count(0,phone)
 	#		DISTANCE+=number_count(8,phone)
-	#		DISTANCE+=number_count(9,phone)
-			DISTANCE=check_places(phone)
+			DISTANCE+=number_count(9,phone)
+			DISTANCE+=check_places(phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
-			if NUMLIST[phone]==0:
-				print "possible match! "+str(phone)
 		else:
 			DISTANCE=999
 	return NUMLIST,TOTDISTANCE
@@ -259,8 +257,6 @@ for generation in range(0,GENERATIONS):
 		print NUMLIST
 	
 
-NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
-print NUMLIST
 	
 
 
