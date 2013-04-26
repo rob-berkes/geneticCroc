@@ -2,7 +2,7 @@ import random
 import epdb 
 
 SEARCHNUM=7
-POOLSIZE=1500
+POOLSIZE=105
 ACSUM=13
 CCSUM=17
 PNSUM=19
@@ -18,9 +18,9 @@ FOURTHNUM=6
 FIFTHNUM=7
 SIXTHNUM=4
 
-GENERATIONS=5000
+GENERATIONS=2000
 TC=0 
-MUTATIONRATE=0.120
+MUTATIONRATE=0.0420
 
 
 
@@ -32,23 +32,22 @@ def number_count(searchnum,phone):
 		if str(searchnum)==str(letter):
 			count+=1
 	return count
-def check_place(place,number):
+def check_places(number):
 	number=str(number)
 	RETCODE=0
-	if place==3 and number[2]==str(THIRDNUM):
-		RETCODE=0
-	elif place==2 and number[1]==str(SECONDNUM):
-		RETCODE=0
-	elif place==4 and number[3]==str(FOURTHNUM):
-		RETCODE=0
-	elif place==1 and number[0]==str(FIRSTNUM):
-		RETCODE=0
-	elif place==6 and number[5]==str(SIXTHNUM):
-		RETCODE=0
-	elif place==5 and number[4]==str(FIFTHNUM):
-		RETCODO=0
-	else:
-		RETCODE=1
+
+	if number[2]!=str(THIRDNUM):
+		RETCODE+=1
+	if number[1]!=str(SECONDNUM):
+		RETCODE+=1
+	if number[3]!=str(FOURTHNUM):
+		RETCODE+=1
+	if number[0]!=str(FIRSTNUM):
+		RETCODE+=1
+	if number[5]!=str(SIXTHNUM):
+		RETCODE+=1
+	if number[4]!=str(FIFTHNUM):
+		RETCODE+=1
 
 	return RETCODE
 def sum(numb,type):
@@ -93,6 +92,18 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 			pass
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
+def choose_swap_method(NUMLIST,MATCHLIST):
+	try:
+		SDEX=random.randint(0,len(MATCHLIST)-1)
+	except ValueError:
+		SDEX=0
+	NEWVALUES=[]
+	if len(MATCHLIST) > 1:
+		NEWSEED=random.randint(0,len(MATCHLIST)-1)
+		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],MATCHLIST[NEWSEED]))
+	else:
+		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
+	return NUMLIST,MATCHLIST
 
 def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 	DONE=0
@@ -113,14 +124,9 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 		if NUMLIST[row] > (MINDIST+1):
 			if  random.random() < MUTATIONRATE:
 				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
-				if len(NEWVAL)< 10:
-					epdb.st()
-					NEWVALUES.append(NEWVAL) 
-			elif random.randint(0,1)==0:
-				NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
-			else:
-				NEWVALUES.append(perform_xbreed(NUMLIST,row,MATCHLIST[SDEX]))
-				
+				NEWVALUES.append(NEWVAL) 
+			elif random.randint(0,1)==1:
+				NUMLIST,MATCHLIST=choose_swap_method(NUMLIST,MATCHLIST)
 			OLDVALUES.append(row)
 	SECOND_VALUE_SET=False
 	FIRST_VALUE_SET=False
@@ -158,17 +164,12 @@ def calc_distances(NUMLIST):
 		if len(phone)>9:
 	#		DISTANCE=sum(phone,'AC')
 	#		DISTANCE+=sum(phone,'CC')
-			DISTANCE=sum(phone,'PN')
+	#		DISTANCE=sum(phone,'PN')
 	#		DISTANCE=number_count(7,phone)
 	#		DISTANCE+=number_count(0,phone)
 	#		DISTANCE+=number_count(8,phone)
-			DISTANCE+=number_count(9,phone)
-			DISTANCE+=check_place(3,phone)
-			DISTANCE+=check_place(5,phone)
-			DISTANCE+=check_place(4,phone)
-			DISTANCE+=check_place(1,phone)
-			DISTANCE+=check_place(2,phone)
-			DISTANCE+=check_place(6,phone)
+	#		DISTANCE+=number_count(9,phone)
+			DISTANCE=check_places(phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
 			if NUMLIST[phone]==0:
@@ -176,7 +177,17 @@ def calc_distances(NUMLIST):
 		else:
 			DISTANCE=999
 	return NUMLIST,TOTDISTANCE
+def choose_to_add(MATCHLIST,row):
+	INLIST=False
+	for a in MATCHLIST:
+		if a == row:
+			INLIST=True
+	if INLIST:
+		pass
+	else:
+		MATCHLIST.append(row)
 
+	return MATCHLIST
 def find_best(NUMLIST,MINDIST,MATCHLIST):
 	COUNT=0
 	TCOUNT=0
@@ -187,10 +198,10 @@ def find_best(NUMLIST,MINDIST,MATCHLIST):
 			if NUMLIST[row] < MINDIST:
 				MATCHLIST=[]
 				MINDIST=NUMLIST[row]
-				MATCHLIST.append(row)
+				MATCHLIST=choose_to_add(MATCHLIST,row)
 				COUNT=1
 			elif NUMLIST[row] == MINDIST:
-				MATCHLIST.append(row)
+				MATCHLIST=choose_to_add(MATCHLIST,row)
 				MINDIST=NUMLIST[row]
 				COUNT+=1
 #	print str(COUNT)+" / "+str(TCOUNT)
@@ -245,6 +256,7 @@ for generation in range(0,GENERATIONS):
 		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
 	if (generation % 200)==0:
 		print "Generation "+str(generation)+" completed, average distance of "+str(TOTDISTANCE)+", MINDIST= "+str(MINDIST)+", Changes:"+str(CHANGETOTAL)
+		print NUMLIST
 	
 
 NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
