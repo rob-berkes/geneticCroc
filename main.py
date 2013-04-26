@@ -1,7 +1,7 @@
 import random
 import epdb 
 
-POOLSIZE=500
+POOLSIZE=300
 ACSUM=13
 CCSUM=17
 PNSUM=19
@@ -16,10 +16,11 @@ THIRDNUM=5
 FOURTHNUM=6
 FIFTHNUM=7
 SIXTHNUM=4
+EIGHTHNUM=9
 
-GENERATIONS=6000
+GENERATIONS=4000
 TC=0 
-MUTATIONRATE=0.020
+MUTATIONRATE=0.20
 
 
 
@@ -47,6 +48,8 @@ def check_places(number):
 		RETCODE+=1
 	if number[4]!=str(FIFTHNUM):
 		RETCODE+=1
+	if number[7]!=str(EIGHTHNUM):
+		RETCODE+=1
 
 	return RETCODE
 def sum(numb,type):
@@ -66,21 +69,23 @@ def sum(numb,type):
 		DISTANCE=999		
 	except ValueError:
 		DISTANCE=999			
-	if DISTANCE > 0 and DISTANCE < 999 :
-		DISTANCE=1
+#	if DISTANCE > 0 and DISTANCE < 999 :
+#		DISTANCE=1
 	return DISTANCE
 
 def perform_xbreed(NUMLIST,FIRST_VALUE,SECOND_VALUE):
 	FIRST_VALUE=str(FIRST_VALUE)
 	SECOND_VALUE=str(SECOND_VALUE)
-	XOVERSPOT=random.randint(1,9)
+	XOVERSPOT=random.randint(0,9)
 	HEADER=str(FIRST_VALUE[0:XOVERSPOT])
 	FOOTER=str(SECOND_VALUE[XOVERSPOT+1:10]).zfill(10-XOVERSPOT)
 	return str(HEADER)+str(FOOTER)
+
 def zero_numlist(NUMLIST):
 	for a in NUMLIST:
 		NUMLIST[a]=0
 	return NUMLIST
+
 def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 	for val in OLDVALUES:
 		try:
@@ -91,10 +96,11 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 		NUMLIST[num]=0
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
+
 def choose_swap_method(NUMLIST,MATCHLIST,row):
 	try:
 		SDEX=random.randint(0,len(MATCHLIST)-1)
-	except ValueError:
+	except :
 		SDEX=0
 	NEWVALUES=[]
 	if len(MATCHLIST) > 1:
@@ -102,37 +108,35 @@ def choose_swap_method(NUMLIST,MATCHLIST,row):
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],MATCHLIST[NEWSEED]))
 	else:
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
-	return NEWVALUES,NUMLIST,MATCHLIST
+	return NEWVALUES
 
 def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 	NEWVALUES=[]
 	OLDVALUES=[]
-	MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
 	for row in NUMLIST:
 		if len(str(row)) > 10:
 			OLDVALUES.append(row)
 		elif len(str(row)) < 9:
-			OLDVALUE.append(row)
+			OLDVALUES.append(row)
 		try:
 			SDEX=random.randint(0,len(MATCHLIST)-1)
 		except ValueError:
 			SDEX=0
-		if NUMLIST[row] > (MINDIST+1):
+		if NUMLIST[row] > (MINDIST):
 			if  random.random() < MUTATIONRATE:
 				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
 				NEWVALUES.append(NEWVAL) 
-			else:
-				NEWVALUES,NUMLIST,MATCHLIST=choose_swap_method(NUMLIST,MATCHLIST,row)
+			NEWVALUES=choose_swap_method(NUMLIST,MATCHLIST,row)
 			OLDVALUES.append(row)
 	#Now do actual list replacements
 	NUMLIST=finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES)
 
-	return NUMLIST,MATCHLIST
+	return NUMLIST
 
 def mutate(NUMLIST,MATCHLIST,row):
 	SEED=random.randint(0,len(MATCHLIST)-1)
 	FIRST_VALUE=str(MATCHLIST[SEED])
-	MUTATESPOT=random.randint(1,8)
+	MUTATESPOT=random.randint(0,8)
 	NEWSPOT=MUTATESPOT+1
 	NEWVAL=random.randint(0,9)
 	HEADER=FIRST_VALUE[0:MUTATESPOT]
@@ -153,10 +157,10 @@ def calc_distances(NUMLIST):
 	for phone in NUMLIST:
 		DISTANCE=0
 		if len(phone)>9:
-			DISTANCE=sum(phone,'PN')
-			DISTANCE+=number_count(7,phone)
-			DISTANCE+=number_count(0,phone)
-			DISTANCE+=number_count(8,phone)
+#			DISTANCE=sum(phone,'PN')
+			DISTANCE=number_count(7,phone)
+#			DISTANCE+=number_count(0,phone)
+#			DISTANCE+=number_count(8,phone)
 			DISTANCE+=check_places(phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
@@ -231,7 +235,7 @@ print "Initially "+str(len(MATCHLIST))+" matches in MATCHLIST"
 print MINDIST,COUNT
 print NUMLIST
 for generation in range(0,GENERATIONS):
-	NUMLIST,MATCHLIST=crossbreed(MINDIST,NUMLIST,MATCHLIST)
+	NUMLIST=crossbreed(MINDIST,NUMLIST,MATCHLIST)
 	NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
 	MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
 	if len(NUMLIST) < POOLSIZE:
