@@ -1,8 +1,7 @@
 import random
 import epdb 
 
-SEARCHNUM=7
-POOLSIZE=105
+POOLSIZE=500
 ACSUM=13
 CCSUM=17
 PNSUM=19
@@ -18,9 +17,9 @@ FOURTHNUM=6
 FIFTHNUM=7
 SIXTHNUM=4
 
-GENERATIONS=2000
+GENERATIONS=6000
 TC=0 
-MUTATIONRATE=0.0420
+MUTATIONRATE=0.020
 
 
 
@@ -52,7 +51,6 @@ def check_places(number):
 	return RETCODE
 def sum(numb,type):
 	numb=str(numb)
-#	print numb
 	asum=0
 	try:
 		if type=='AC':
@@ -73,7 +71,6 @@ def sum(numb,type):
 	return DISTANCE
 
 def perform_xbreed(NUMLIST,FIRST_VALUE,SECOND_VALUE):
-	NEW_VALUE=[]
 	FIRST_VALUE=str(FIRST_VALUE)
 	SECOND_VALUE=str(SECOND_VALUE)
 	XOVERSPOT=random.randint(1,9)
@@ -90,6 +87,8 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 			del(NUMLIST[val])
 		except KeyError:
 			pass
+	for num in NEWVALUES:
+		NUMLIST[num]=0
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
 def choose_swap_method(NUMLIST,MATCHLIST,row):
@@ -103,12 +102,9 @@ def choose_swap_method(NUMLIST,MATCHLIST,row):
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],MATCHLIST[NEWSEED]))
 	else:
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
-	return NUMLIST,MATCHLIST
+	return NEWVALUES,NUMLIST,MATCHLIST
 
 def crossbreed(MINDIST,NUMLIST,MATCHLIST):
-	DONE=0
-	FIRST_VALUE_SET=False
-	SECOND_VALUE_SET=False
 	NEWVALUES=[]
 	OLDVALUES=[]
 	MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
@@ -125,12 +121,9 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 			if  random.random() < MUTATIONRATE:
 				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
 				NEWVALUES.append(NEWVAL) 
-			elif random.randint(0,1)==1:
-				NUMLIST,MATCHLIST=choose_swap_method(NUMLIST,MATCHLIST,row)
+			else:
+				NEWVALUES,NUMLIST,MATCHLIST=choose_swap_method(NUMLIST,MATCHLIST,row)
 			OLDVALUES.append(row)
-	SECOND_VALUE_SET=False
-	FIRST_VALUE_SET=False
-	#print NEWVALUES
 	#Now do actual list replacements
 	NUMLIST=finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES)
 
@@ -157,18 +150,13 @@ def calc_distances(NUMLIST):
 	TOTDISTANCE=0
 	DISTANCE=0
 	NUMLIST=zero_numlist(NUMLIST)
-	for item in NUMLIST:
-		NUMLIST[item]=0
 	for phone in NUMLIST:
 		DISTANCE=0
 		if len(phone)>9:
-	#		DISTANCE=sum(phone,'AC')
-	#		DISTANCE+=sum(phone,'CC')
 			DISTANCE=sum(phone,'PN')
 			DISTANCE+=number_count(7,phone)
-	#		DISTANCE+=number_count(0,phone)
-	#		DISTANCE+=number_count(8,phone)
-			DISTANCE+=number_count(9,phone)
+			DISTANCE+=number_count(0,phone)
+			DISTANCE+=number_count(8,phone)
 			DISTANCE+=check_places(phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
@@ -188,9 +176,7 @@ def choose_to_add(MATCHLIST,row):
 	return MATCHLIST
 def find_best(NUMLIST,MINDIST,MATCHLIST):
 	COUNT=0
-	TCOUNT=0
 	for row in NUMLIST:
-		TCOUNT+=1
 		if len(row)==10:
 			COUNT+=1
 			if NUMLIST[row] < MINDIST:
@@ -200,9 +186,7 @@ def find_best(NUMLIST,MINDIST,MATCHLIST):
 				COUNT=1
 			elif NUMLIST[row] == MINDIST:
 				MATCHLIST=choose_to_add(MATCHLIST,row)
-				MINDIST=NUMLIST[row]
 				COUNT+=1
-#	print str(COUNT)+" / "+str(TCOUNT)
 	return MINDIST,COUNT,MATCHLIST
 	
 def gen_initial_numbers(TC):
@@ -254,7 +238,6 @@ for generation in range(0,GENERATIONS):
 		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
 	if (generation % 200)==0:
 		print "Generation "+str(generation)+" completed, average distance of "+str(TOTDISTANCE)+", MINDIST= "+str(MINDIST)+", Changes:"+str(CHANGETOTAL)
-		print NUMLIST
 	
 
 	
