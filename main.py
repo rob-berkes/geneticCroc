@@ -1,7 +1,8 @@
 import random
 import epdb 
 
-POOLSIZE=300
+MAXMATCHSIZE=50
+POOLSIZE=200
 ACSUM=13
 CCSUM=17
 PNSUM=19
@@ -20,7 +21,7 @@ EIGHTHNUM=9
 
 GENERATIONS=4000
 TC=0 
-MUTATIONRATE=0.20
+MUTATIONRATE=0.10
 
 
 
@@ -92,6 +93,7 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 			del(NUMLIST[val])
 		except KeyError:
 			pass
+#	epdb.st()
 	for num in NEWVALUES:
 		NUMLIST[num]=0
 	NUMLIST=zero_numlist(NUMLIST)
@@ -103,9 +105,14 @@ def choose_swap_method(NUMLIST,MATCHLIST,row):
 	except :
 		SDEX=0
 	NEWVALUES=[]
+	NEWSEED=SDEX
 	if len(MATCHLIST) > 1:
-		NEWSEED=random.randint(0,len(MATCHLIST)-1)
-		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],MATCHLIST[NEWSEED]))
+		if random.random < MUTATIONRATE:
+			NEWVALUES.append(mutate(NUMLIST,MATCHLIST,row))
+		else:
+			while NEWSEED==SDEX:
+				NEWSEED=random.randint(0,len(MATCHLIST)-1)
+			NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],MATCHLIST[NEWSEED]))
 	else:
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
 	return NEWVALUES
@@ -113,6 +120,8 @@ def choose_swap_method(NUMLIST,MATCHLIST,row):
 def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 	NEWVALUES=[]
 	OLDVALUES=[]
+	COUNT=0
+	rc=0
 	for row in NUMLIST:
 		if len(str(row)) > 10:
 			OLDVALUES.append(row)
@@ -122,15 +131,19 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 			SDEX=random.randint(0,len(MATCHLIST)-1)
 		except ValueError:
 			SDEX=0
-		if NUMLIST[row] > (MINDIST):
+		#epdb.st()
+		if NUMLIST[row] > (MINDIST+1) and COUNT < MAXMATCHSIZE:
+			rc+=1	
 			if  random.random() < MUTATIONRATE:
 				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
 				NEWVALUES.append(NEWVAL) 
 			NEWVALUES=choose_swap_method(NUMLIST,MATCHLIST,row)
 			OLDVALUES.append(row)
+		else:
+			COUNT+=1
+	print str(rc) +" xbreed changes..."
 	#Now do actual list replacements
 	NUMLIST=finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES)
-
 	return NUMLIST
 
 def mutate(NUMLIST,MATCHLIST,row):
@@ -140,7 +153,7 @@ def mutate(NUMLIST,MATCHLIST,row):
 	NEWSPOT=MUTATESPOT+1
 	NEWVAL=random.randint(0,9)
 	HEADER=FIRST_VALUE[0:MUTATESPOT]
-	FOOTER=row[NEWSPOT:9].zfill(10-NEWSPOT)
+	FOOTER=row[NEWSPOT:10].zfill(10-NEWSPOT)
 	RETSTR=HEADER+str(NEWVAL)+FOOTER
 	if len(HEADER+str(NEWVAL)+FOOTER) > 10:
 		RETSTR=mutate(NUMLIST,MATCHLIST)
@@ -181,8 +194,9 @@ def choose_to_add(MATCHLIST,row):
 def find_best(NUMLIST,MINDIST,MATCHLIST):
 	COUNT=0
 	for row in NUMLIST:
+		if COUNT > MAXMATCHSIZE :
+			break
 		if len(row)==10:
-			COUNT+=1
 			if NUMLIST[row] < MINDIST:
 				MATCHLIST=[]
 				MINDIST=NUMLIST[row]
@@ -222,7 +236,11 @@ def print_matches(NUMLIST,MINDIST):
 			print row+'\n'
 
 	return
-
+def show_close_matches(MATCHLIST):
+	for row in MATCHLIST:
+		if row[0]=='7':
+			print row 
+	return
 
 NUMLIST={}
 NUMLIST=gen_initial_numbers(TC)
@@ -230,14 +248,15 @@ NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
 MINDIST=100
 MATCHLIST=[]
 CHANGETOTAL=0
+random.seed()
 MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
 print "Initially "+str(len(MATCHLIST))+" matches in MATCHLIST"
 print MINDIST,COUNT
 print NUMLIST
 for generation in range(0,GENERATIONS):
-	NUMLIST=crossbreed(MINDIST,NUMLIST,MATCHLIST)
 	NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
 	MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
+	NUMLIST=crossbreed(MINDIST,NUMLIST,MATCHLIST)
 	if len(NUMLIST) < POOLSIZE:
 		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
 	if (generation % 200)==0:
@@ -248,4 +267,5 @@ for generation in range(0,GENERATIONS):
 
 
 print "The best distance is "+str(MINDIST)+". "+str(COUNT)+" of these records exist."
+show_close_matches(MATCHLIST)
 print MATCHLIST
