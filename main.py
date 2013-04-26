@@ -2,19 +2,28 @@ import random
 import epdb 
 
 SEARCHNUM=7
-POOLSIZE=150
+POOLSIZE=1500
 ACSUM=13
 CCSUM=17
 PNSUM=19
 SEVENS=2
+EIGHTS=0
+NINES=1
 ZEROES=0
+
 FIRSTNUM=7
-SIXTHNUM=4
+SECONDNUM=1
 THIRDNUM=5
 FOURTHNUM=6
-GENERATIONS=2000
+FIFTHNUM=7
+SIXTHNUM=4
+
+GENERATIONS=5000
 TC=0 
 MUTATIONRATE=0.120
+
+
+
 
 def number_count(searchnum,phone):
 	count=0
@@ -26,14 +35,18 @@ def number_count(searchnum,phone):
 def check_place(place,number):
 	number=str(number)
 	RETCODE=0
-	if place==3 and number[2]==THIRDNUM:
+	if place==3 and number[2]==str(THIRDNUM):
 		RETCODE=0
-	elif place==4 and number[3]==FOURTHNUM:
+	elif place==2 and number[1]==str(SECONDNUM):
 		RETCODE=0
-	elif place==1 and number[0]==FIRSTNUM:
+	elif place==4 and number[3]==str(FOURTHNUM):
 		RETCODE=0
-	elif place==6 and number[5]==SIXTHNUM:
+	elif place==1 and number[0]==str(FIRSTNUM):
 		RETCODE=0
+	elif place==6 and number[5]==str(SIXTHNUM):
+		RETCODE=0
+	elif place==5 and number[4]==str(FIFTHNUM):
+		RETCODO=0
 	else:
 		RETCODE=1
 
@@ -56,26 +69,29 @@ def sum(numb,type):
 		DISTANCE=999		
 	except ValueError:
 		DISTANCE=999			
+	if DISTANCE > 0 and DISTANCE < 999 :
+		DISTANCE=1
 	return DISTANCE
 
 def perform_xbreed(NUMLIST,FIRST_VALUE,SECOND_VALUE):
 	NEW_VALUE=[]
 	FIRST_VALUE=str(FIRST_VALUE)
 	SECOND_VALUE=str(SECOND_VALUE)
-	XOVERSPOT=random.randint(0,9)
+	XOVERSPOT=random.randint(1,9)
 	HEADER=str(FIRST_VALUE[0:XOVERSPOT])
-	FOOTER=str(SECOND_VALUE[XOVERSPOT:11]).zfill(11-XOVERSPOT)
+	FOOTER=str(SECOND_VALUE[XOVERSPOT+1:10]).zfill(10-XOVERSPOT)
 	return str(HEADER)+str(FOOTER)
-
+def zero_numlist(NUMLIST):
+	for a in NUMLIST:
+		NUMLIST[a]=0
+	return NUMLIST
 def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 	for val in OLDVALUES:
 		try:
 			del(NUMLIST[val])
 		except KeyError:
 			pass
-	for val in NEWVALUES:
-		NUMLIST[val]=0
-
+	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
 
 def crossbreed(MINDIST,NUMLIST,MATCHLIST):
@@ -86,13 +102,17 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 	OLDVALUES=[]
 	MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
 	for row in NUMLIST:
+		if len(str(row)) > 10:
+			OLDVALUES.append(row)
+		elif len(str(row)) < 9:
+			OLDVALUE.append(row)
 		try:
 			SDEX=random.randint(0,len(MATCHLIST)-1)
 		except ValueError:
 			SDEX=0
 		if NUMLIST[row] > (MINDIST+1):
 			if  random.random() < MUTATIONRATE:
-				NEWVAL=mutate(NUMLIST,MATCHLIST)
+				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
 				if len(NEWVAL)< 10:
 					epdb.st()
 					NEWVALUES.append(NEWVAL) 
@@ -102,8 +122,6 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 				NEWVALUES.append(perform_xbreed(NUMLIST,row,MATCHLIST[SDEX]))
 				
 			OLDVALUES.append(row)
-		if len(str(row)) < 10:
-			OLDVALUES.append(row)
 	SECOND_VALUE_SET=False
 	FIRST_VALUE_SET=False
 	#print NEWVALUES
@@ -112,35 +130,44 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 
 	return NUMLIST,MATCHLIST
 
-def mutate(NUMLIST,MATCHLIST):
+def mutate(NUMLIST,MATCHLIST,row):
 	SEED=random.randint(0,len(MATCHLIST)-1)
 	FIRST_VALUE=str(MATCHLIST[SEED])
 	MUTATESPOT=random.randint(1,8)
 	NEWSPOT=MUTATESPOT+1
 	NEWVAL=random.randint(0,9)
 	HEADER=FIRST_VALUE[0:MUTATESPOT]
-	FOOTER=FIRST_VALUE[NEWSPOT:10]
-	if NEWVAL==10:
-		NEWVAL=9
-	
-	return HEADER+str(NEWVAL)+FOOTER
+	FOOTER=row[NEWSPOT:9].zfill(10-NEWSPOT)
+	RETSTR=HEADER+str(NEWVAL)+FOOTER
+	if len(HEADER+str(NEWVAL)+FOOTER) > 10:
+		RETSTR=mutate(NUMLIST,MATCHLIST)
+	elif len(HEADER+str(NEWVAL)+FOOTER)==9:
+		LASTNUM=random.randint(0,9)
+		RETSTR=HEADER+str(NEWVAL)+FOOTER+str(LASTNUM)
+			
+	return RETSTR
 
 def calc_distances(NUMLIST):
 	TOTDISTANCE=0
 	DISTANCE=0
+	NUMLIST=zero_numlist(NUMLIST)
 	for item in NUMLIST:
 		NUMLIST[item]=0
 	for phone in NUMLIST:
 		DISTANCE=0
 		if len(phone)>9:
-			DISTANCE=sum(phone,'AC')
-			DISTANCE+=sum(phone,'CC')
-			DISTANCE+=sum(phone,'PN')
-			DISTANCE+=number_count(7,phone)
-			DISTANCE+=number_count(0,phone)
+	#		DISTANCE=sum(phone,'AC')
+	#		DISTANCE+=sum(phone,'CC')
+			DISTANCE=sum(phone,'PN')
+	#		DISTANCE=number_count(7,phone)
+	#		DISTANCE+=number_count(0,phone)
+	#		DISTANCE+=number_count(8,phone)
+			DISTANCE+=number_count(9,phone)
 			DISTANCE+=check_place(3,phone)
+			DISTANCE+=check_place(5,phone)
 			DISTANCE+=check_place(4,phone)
 			DISTANCE+=check_place(1,phone)
+			DISTANCE+=check_place(2,phone)
 			DISTANCE+=check_place(6,phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
