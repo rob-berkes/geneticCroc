@@ -4,31 +4,32 @@ import epdb
 MAXMATCHSIZE=20
 POOLSIZE=300
 APPENDS=POOLSIZE
-ACSUM=13
-CCSUM=17
-PNSUM=19
-SEVENS=2
+ACSUM=15
+CCSUM=15
+PNSUM=6
+SEVENS=0
 EIGHTS=0
-NINES=1
+NINES=0
 ONES=2
-TWOS=0
-FIVES=2
+TWOS=2
+FIVES=6
 ZEROES=0
 
-FIRSTNUM=7
-SECONDNUM=1
+FIRSTNUM=5
+SECONDNUM=5
 THIRDNUM=5
-FOURTHNUM=6
-FIFTHNUM=7
-SIXTHNUM=4
-EIGHTHNUM=9
-GENERATIONS=6000
+FOURTHNUM=5
+FIFTHNUM=5
+SIXTHNUM=5
+EIGHTHNUM=2
+PHONENUM="5555551212"
+GENERATIONS=600
 TC=0 
-MUTATIONRATE=0.150
+MUTATIONRATE=0.0510
 MINDIST=100
 MATCHLIST={}
 
-CROSSLIMIT=3
+
 
 
 def number_count(searchnum,phone,numcount):
@@ -96,17 +97,15 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 			del(NUMLIST[val])
 		except KeyError:
 			pass
-#DON'T REMOVE BELOW FOR LOOP IF YOURE GETTING THAT IDEA! 
-	for a in NEWVALUES:
-		NUMLIST[a]=0
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
 
-def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
+def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS):
 	try:
 		SDEX=random.randint(0,len(MATCHLIST)-1)
 	except :
 		SDEX=0
+	NEWVALUES=[]
 	NEWSEED=SDEX
 	if len(MATCHLIST) > 1:
 		if random.random < MUTATIONRATE:
@@ -115,7 +114,7 @@ def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
 		else:
 			while NEWSEED==SDEX:
 				NEWSEED=random.randint(0,len(MATCHLIST)-1)
-			NEWVALUES.append(perform_xbreed(NUMLIST,row,MATCHLIST[NEWSEED]))
+			NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],MATCHLIST[NEWSEED]))
 			APPENDS+=1
 	else:
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
@@ -125,44 +124,26 @@ def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
 def crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS):
 	NEWVALUES=[]
 	OLDVALUES=[]
+	COUNT=0
+	rc=0
 	for row in NUMLIST:
 		if len(str(row)) > 10:
 			OLDVALUES.append(row)
-			epdb.st()
 		elif len(str(row)) < 9:
 			OLDVALUES.append(row)
-			epdb.st()
 		try:
 			SDEX=random.randint(0,len(MATCHLIST)-1)
 		except ValueError:
 			SDEX=0
-		if NUMLIST[row] > (MINDIST+CROSSLIMIT) :
-			NEWVALUES,APPENDS=choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES)
+		if NUMLIST[row] > (MINDIST) :
+			rc+=1	
 			OLDVALUES.append(row)
-			APPENDS+=1 
 		else:
 			if random.random()<MUTATIONRATE:
-				if in_matchlist(MATCHLIST,row):
-					pass
-				else:
-					OLDVALUES.append(row)
-					NEWVAL=mutate(NUMLIST,MATCHLIST,row)
-					NEWVALUES.append(NEWVAL)
-					APPENDS+=1
+				OLDVALUES.append(row)
 	NUMLIST=finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES)
-	return NUMLIST,APPENDS,len(NEWVALUES),len(OLDVALUES)
+	return NUMLIST,APPENDS
 
-def mutate(NUMLIST,MATCHLIST,row):
-	SEED=random.randint(0,len(MATCHLIST)-1)
-	FIRST_VALUE=str(MATCHLIST[SEED])
-	MUTATESPOT=random.randint(0,8)
-	NEWSPOT=MUTATESPOT+1
-	NEWVAL=random.randint(0,9)
-	HEADER=FIRST_VALUE[0:MUTATESPOT]
-	FOOTER=row[NEWSPOT:10].zfill(10-NEWSPOT)
-	RETSTR=HEADER+str(NEWVAL)+FOOTER
-			
-	return RETSTR
 
 def calc_distances(NUMLIST):
 	TOTDISTANCE=0
@@ -206,33 +187,21 @@ def in_matchlist(MATCHLIST,row):
 	for a in MATCHLIST:
 		if a==row:
 			found=True
-	return found
-
-def trim_matchlist(NUMLIST,MATCHLIST,newlow):
-	limit=newlow+2
-	newlist=[]
-	for a in MATCHLIST:
-		try:
-			if NUMLIST[a] < limit:
-				newlist.append(a)			 
-		except KeyError:
-			pass
-	return newlist
-def find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW):
+	return found 
+def find_best(NUMLIST,MINDIST,MATCHLIST):
 	COUNT=0
 	for row in NUMLIST:
 		if COUNT > MAXMATCHSIZE :
 			break
 		if len(row)==10:
 			if NUMLIST[row] < MINDIST:
-				MATCHLIST=trim_matchlist(NUMLIST,MATCHLIST,NUMLIST[row])
-				OLDLOW=MINDIST
+				MATCHLIST=[]
 				MINDIST=NUMLIST[row]
 				MATCHLIST.append(row)
 				COUNT=1
-			elif NUMLIST[row] <= MINDIST+1:
+			elif NUMLIST[row] == MINDIST:
 				MATCHLIST,COUNT=choose_to_add(MATCHLIST,row,COUNT)
-	return MINDIST,COUNT,MATCHLIST,OLDLOW
+	return MINDIST,COUNT,MATCHLIST
 	
 def gen_initial_numbers(TC):
 	for a in range(0,POOLSIZE+5):
@@ -244,25 +213,20 @@ def gen_initial_numbers(TC):
 		NUMLIST[str(ac)+str(cc)+str(nc)]=0
 
 	return NUMLIST
-def gen_new_members(NUMLIST,POOLSIZE,CURSIZE,MATCHLIST):
+def gen_new_members(NUMLIST,POOLSIZE,CURSIZE,MATCHLIST,APPENDS):
 	TOTAL=0
 	ml_LENGTH=len(MATCHLIST)
 	ml_SPOT=random.randint(0,9)
 	for a in range(CURSIZE,POOLSIZE+1):
 		ml_SPOT=random.randint(0,9)
-		if ml_LENGTH>1:
-			SDEX2=random.randint(0,len(MATCHLIST)-1)
-			NEWVAL=mutate(NUMLIST,MATCHLIST,MATCHLIST[SDEX2])
-			NUMLIST[NEWVAL]=0
-			TOTAL+=1
-		else:
-			ac="%03d" % (random.randint(100,999),)
-			cc="%03d" % (random.randint(100,999),)
-			pn="%04d" % (random.randint(0,9999),)
-			number=str(ac)+str(cc)+str(pn)
-			NUMLIST[number]=0
-			TOTAL+=1
-	return NUMLIST,TOTAL
+		ac="%03d" % (random.randint(100,999),)
+		cc="%03d" % (random.randint(100,999),)
+		pn="%04d" % (random.randint(0,9999),)
+		number=str(ac)+str(cc)+str(pn)
+		NUMLIST[number]=0
+		APPENDS+=1
+		TOTAL+=1
+	return NUMLIST,TOTAL,APPENDS
 def print_matches(NUMLIST,MINDIST):
 	for row in NUMLIST:
 		if NUMLIST[row]==MINDIST:
@@ -274,28 +238,31 @@ def show_close_matches(MATCHLIST):
 		if row[0]=='7':
 			print row 
 	return
+def cheat_and_check(NUMLIST,PHONENUM):
+	for row in NUMLIST:
+		if row==PHONENUM:
+			print "Match found!"
+			epdb.st()
+	return
 NUMLIST={}
 NUMLIST=gen_initial_numbers(TC)
 NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
 CHANGETOTAL=0
-OLDLOW=0
 random.seed()
-MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
+MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
 print "Initially "+str(len(MATCHLIST))+" matches in MATCHLIST"
 print MINDIST,COUNT
 print NUMLIST
 for generation in range(0,GENERATIONS):
 	NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
-	MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
-	NUMLIST,APPENDS,LENNEW,LENOLD=crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS)
+	MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
+	NUMLIST,APPENDS=crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS)
 	if len(NUMLIST) < POOLSIZE:
-		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
+		NUMLIST,CHANGETOTAL,APPENDS=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST,APPENDS)
 	if (generation % 200)==0:
-		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,NEWVALUES "+str(LENNEW)+" OLDVALUES "+str(LENOLD)+" length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-	if str(MINDIST)=='0':
-		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-		break
-		
+		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", MINDIST= "+str(MINDIST)+", New randome children:"+str(CHANGETOTAL)
+	cheat_and_check(NUMLIST,PHONENUM)	
+
 	
 
 

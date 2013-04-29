@@ -1,5 +1,5 @@
 *.py[cod]
-env
+env*
 # C extensions
 *.so
 *.ignore
