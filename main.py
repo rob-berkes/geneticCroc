@@ -3,40 +3,44 @@ import epdb
 
 MAXMATCHSIZE=50
 POOLSIZE=200
-ACSUM=13
-CCSUM=17
-PNSUM=19
-SEVENS=2
+ACSUM=15
+CCSUM=15
+PNSUM=6
+SEVENS=0
 EIGHTS=0
-NINES=1
+NINES=0
+ONES=2
+FIVES=6
 ZEROES=0
 
-FIRSTNUM=7
-SECONDNUM=1
+FIRSTNUM=5
+SECONDNUM=5
 THIRDNUM=5
-FOURTHNUM=6
-FIFTHNUM=7
-SIXTHNUM=4
-EIGHTHNUM=9
-
-GENERATIONS=4000
+FOURTHNUM=5
+FIFTHNUM=5
+SIXTHNUM=5
+EIGHTHNUM=2
+PHONENUM="5555551212"
+GENERATIONS=12000
 TC=0 
-MUTATIONRATE=0.10
+MUTATIONRATE=0.0510
+MINDIST=100
+MATCHLIST={}
 
 
 
 
-def number_count(searchnum,phone):
+def number_count(searchnum,phone,numcount):
 	count=0
 	phone=str(phone)
 	for letter in phone:
 		if str(searchnum)==str(letter):
 			count+=1
-	return count
+	return abs(numcount-count)
 def check_places(number):
 	number=str(number)
 	RETCODE=0
-
+#	epdb.st()
 	if number[2]!=str(THIRDNUM):
 		RETCODE+=1
 	if number[1]!=str(SECONDNUM):
@@ -70,8 +74,6 @@ def sum(numb,type):
 		DISTANCE=999		
 	except ValueError:
 		DISTANCE=999			
-#	if DISTANCE > 0 and DISTANCE < 999 :
-#		DISTANCE=1
 	return DISTANCE
 
 def perform_xbreed(NUMLIST,FIRST_VALUE,SECOND_VALUE):
@@ -93,9 +95,6 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 			del(NUMLIST[val])
 		except KeyError:
 			pass
-#	epdb.st()
-	for num in NEWVALUES:
-		NUMLIST[num]=0
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
 
@@ -131,17 +130,22 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST):
 			SDEX=random.randint(0,len(MATCHLIST)-1)
 		except ValueError:
 			SDEX=0
-		#epdb.st()
-		if NUMLIST[row] > (MINDIST+1) and COUNT < MAXMATCHSIZE:
+		if NUMLIST[row] > (MINDIST+1) and len(NEWVALUES)<len(MATCHLIST) :
 			rc+=1	
+			NEWVALUES=choose_swap_method(NUMLIST,MATCHLIST,row)
+			OLDVALUES.append(row)
 			if  random.random() < MUTATIONRATE:
 				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
 				NEWVALUES.append(NEWVAL) 
-			NEWVALUES=choose_swap_method(NUMLIST,MATCHLIST,row)
-			OLDVALUES.append(row)
 		else:
+			if random.random()<MUTATIONRATE:
+				OLDVALUES.append(row)
+				NEWVAL=mutate(NUMLIST,MATCHLIST,row)
+				NEWVALUES.append(NEWVAL)
 			COUNT+=1
-	print str(rc) +" xbreed changes..."
+#	print str(rc) +" xbreed changes..."
+#	if rc==0:
+#		epdb.st()
 	#Now do actual list replacements
 	NUMLIST=finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES)
 	return NUMLIST
@@ -170,27 +174,41 @@ def calc_distances(NUMLIST):
 	for phone in NUMLIST:
 		DISTANCE=0
 		if len(phone)>9:
-#			DISTANCE=sum(phone,'PN')
-			DISTANCE=number_count(7,phone)
-#			DISTANCE+=number_count(0,phone)
-#			DISTANCE+=number_count(8,phone)
+			DISTANCE=sum(phone,'PN')
+			DISTANCE+=sum(phone,'CC')
+	#		DISTANCE+=sum(phone,'AC')
+			DISTANCE+=number_count(7,phone,SEVENS)
+			DISTANCE+=number_count(0,phone,ZEROES)
+			DISTANCE+=number_count(8,phone,EIGHTS)
+			DISTANCE+=number_count(5,phone,FIVES)
+			DISTANCE+=number_count(1,phone,ONES)
 			DISTANCE+=check_places(phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
 		else:
 			DISTANCE=999
 	return NUMLIST,TOTDISTANCE
-def choose_to_add(MATCHLIST,row):
+def choose_to_add(MATCHLIST,row,COUNT):
 	INLIST=False
-	for a in MATCHLIST:
-		if a == row:
-			INLIST=True
+	try:
+		for a in MATCHLIST:
+			if a == row:
+				INLIST=True
+	except TypeError:
+		MATCHLIST=[]
 	if INLIST:
 		pass
 	else:
 		MATCHLIST.append(row)
+		COUNT+=1
 
-	return MATCHLIST
+	return MATCHLIST,COUNT
+def in_matchlist(MATCHLIST,row):
+	found=False
+	for a in MATCHLIST:
+		if a==row:
+			found=True
+	return found 
 def find_best(NUMLIST,MINDIST,MATCHLIST):
 	COUNT=0
 	for row in NUMLIST:
@@ -200,11 +218,10 @@ def find_best(NUMLIST,MINDIST,MATCHLIST):
 			if NUMLIST[row] < MINDIST:
 				MATCHLIST=[]
 				MINDIST=NUMLIST[row]
-				MATCHLIST=choose_to_add(MATCHLIST,row)
+				MATCHLIST.append(row)
 				COUNT=1
 			elif NUMLIST[row] == MINDIST:
-				MATCHLIST=choose_to_add(MATCHLIST,row)
-				COUNT+=1
+				MATCHLIST,COUNT=choose_to_add(MATCHLIST,row,COUNT)
 	return MINDIST,COUNT,MATCHLIST
 	
 def gen_initial_numbers(TC):
@@ -241,12 +258,15 @@ def show_close_matches(MATCHLIST):
 		if row[0]=='7':
 			print row 
 	return
-
+def cheat_and_check(NUMLIST,PHONENUM):
+	for row in NUMLIST:
+		if row==PHONENUM:
+			print "Match found!"
+			epdb.st()
+	return
 NUMLIST={}
 NUMLIST=gen_initial_numbers(TC)
 NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
-MINDIST=100
-MATCHLIST=[]
 CHANGETOTAL=0
 random.seed()
 MINDIST,COUNT,MATCHLIST=find_best(NUMLIST,MINDIST,MATCHLIST)
@@ -260,8 +280,8 @@ for generation in range(0,GENERATIONS):
 	if len(NUMLIST) < POOLSIZE:
 		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
 	if (generation % 200)==0:
-		print "Generation "+str(generation)+" completed, average distance of "+str(TOTDISTANCE)+", MINDIST= "+str(MINDIST)+", Changes:"+str(CHANGETOTAL)
-	
+		print "Generation "+str(generation)+" completed, ,length "+str(len(NUMLIST))+" average distance of "+str(TOTDISTANCE)+", MINDIST= "+str(MINDIST)+", Changes:"+str(CHANGETOTAL)
+	cheat_and_check(NUMLIST,PHONENUM)	
 
 	
 
