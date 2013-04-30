@@ -4,25 +4,26 @@ import epdb
 MAXMATCHSIZE=20
 POOLSIZE=300
 APPENDS=POOLSIZE
-ACSUM=13
-CCSUM=17
-PNSUM=19
-SEVENS=2
-EIGHTS=0
+ACSUM=14
+CCSUM=12
+PNSUM=23
+SEVENS=0
+EIGHTS=1
 NINES=1
-ONES=2
+ONES=0
 TWOS=0
-FIVES=2
-ZEROES=0
+FIVES=0
+ZEROES=1
 
-FIRSTNUM=7
-SECONDNUM=1
-THIRDNUM=5
-FOURTHNUM=6
-FIFTHNUM=7
+FIRSTNUM=6
+SECONDNUM=0
+THIRDNUM=8
+FOURTHNUM=4
+FIFTHNUM=4
 SIXTHNUM=4
-EIGHTHNUM=9
-GENERATIONS=6000
+EIGHTHNUM=4
+TENTHNUM=6
+GENERATIONS=1000
 TC=0 
 MUTATIONRATE=0.150
 MINDIST=100
@@ -55,6 +56,8 @@ def check_places(number):
 	if number[4]!=str(FIFTHNUM):
 		RETCODE+=1
 	if number[7]!=str(EIGHTHNUM):
+		RETCODE+=1
+	if number[9]!=str(TENTHNUM):
 		RETCODE+=1
 
 	return RETCODE
@@ -180,6 +183,7 @@ def calc_distances(NUMLIST):
 			DISTANCE+=number_count(5,phone,FIVES)
 			DISTANCE+=number_count(2,phone,TWOS)
 			DISTANCE+=number_count(1,phone,ONES)
+			DISTANCE+=number_count(9,phone,NINES)
 			DISTANCE+=check_places(phone)
 			NUMLIST[phone]=DISTANCE
 			TOTDISTANCE+=DISTANCE
@@ -269,11 +273,6 @@ def print_matches(NUMLIST,MINDIST):
 			print row+'\n'
 
 	return
-def show_close_matches(MATCHLIST):
-	for row in MATCHLIST:
-		if row[0]=='7':
-			print row 
-	return
 NUMLIST={}
 NUMLIST=gen_initial_numbers(TC)
 NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
@@ -283,7 +282,6 @@ random.seed()
 MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
 print "Initially "+str(len(MATCHLIST))+" matches in MATCHLIST"
 print MINDIST,COUNT
-print NUMLIST
 for generation in range(0,GENERATIONS):
 	NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
 	MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
@@ -292,13 +290,12 @@ for generation in range(0,GENERATIONS):
 		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
 	if (generation % 200)==0:
 		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,NEWVALUES "+str(LENNEW)+" OLDVALUES "+str(LENOLD)+" length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-	if str(MINDIST)=='0':
-		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-		break
+#	if str(MINDIST)=='0':
+#		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
+#		break
 		
 	
 
 
-print "The best distance is "+str(MINDIST)+". "+str(COUNT)+" of these records exist."
-show_close_matches(MATCHLIST)
+print "The best distance is "+str(MINDIST)+". "+str(len(MATCHLIST))+" of these records exist."
 print MATCHLIST
