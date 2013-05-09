@@ -3,11 +3,12 @@ import epdb
 import sys
 
 MAXMATCHSIZE=100
-GENERATIONS=2000
-MUTATIONRATE=0.150
-TABURATE=0.10
-POOLSIZE=300
+GENERATIONS=1000
+MUTATIONRATE=0.250
+TABURATE=0.25
+POOLSIZE=1000
 APPENDS=POOLSIZE
+NUMRUNS=100
 
 PHONENUM="6084444496"
 ACSUM=14
@@ -50,16 +51,16 @@ def check_places(number):
 #	epdb.st()
 	if number[2]!=str(THIRDNUM):
 		RETCODE+=1
-	#if number[1]!=str(SECONDNUM):
-	#	RETCODE+=1
-	if number[3]!=str(FOURTHNUM):
+	if number[1]!=str(SECONDNUM):
 		RETCODE+=1
+#	if number[3]!=str(FOURTHNUM):
+#		RETCODE+=1
 	if number[0]!=str(FIRSTNUM):
 		RETCODE+=1
 	if number[5]!=str(SIXTHNUM):
 		RETCODE+=1
-#	if number[4]!=str(FIFTHNUM):
-#		RETCODE+=1
+	if number[4]!=str(FIFTHNUM):
+		RETCODE+=1
 	if number[7]!=str(EIGHTHNUM):
 		RETCODE+=1
 	if number[9]!=str(TENTHNUM):
@@ -110,22 +111,22 @@ def finalize_dchanges(NUMLIST,NEWVALUES,OLDVALUES):
 	NUMLIST=zero_numlist(NUMLIST)
 	return NUMLIST
 def tabu_swap(NUMLIST,row1,row2):
-	OFILE=open("/tmp/tabu.log","a")
+	#OFILE=open("/tmp/tabu.log","a")
 	#crossbreed one child all times, using all pivots
 	#calculate scores, take best
 	RESULT=""
 	BESTSCORE=100
 	for a in range(1,9):
 		RESULT1=str(row1[0:a])
-		RESULT2=str(row2[a+1:a])
+		RESULT2=str(row2[a:10])
 		NEWRES=RESULT1+RESULT2	
 		NEWSCORE=calc_score(NEWRES)
-		OFILE.write(str(NEWSCORE)+" , "+str(NEWRES)+"\n")
+		#OFILE.write(str(NEWSCORE)+" , "+str(NEWRES)+"\n")
 		if NEWSCORE < BESTSCORE:
 			RESULT=NEWRES
 			BESTSCORE=NEWSCORE
-	OFILE.write("Best: "+str(BESTSCORE)+", for "+str(RESULT)+"\n")
-	OFILE.close()
+	#OFILE.write("Best: "+str(BESTSCORE)+", for "+str(NEWRES)+"\n")
+	#OFILE.close()
 	return RESULT,BESTSCORE
 
 def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
@@ -135,7 +136,8 @@ def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
 		SDEX=0
 	NEWSEED=SDEX
 	if len(MATCHLIST) > 1:
-		if random.random() < MUTATIONRATE:
+		MUTATE=random.random()
+		if MUTATE < MUTATIONRATE:
 			NEWVALUES.append(mutate(NUMLIST,MATCHLIST,row))
 			APPENDS+=1
 		elif random.random() < TABURATE:
@@ -144,7 +146,11 @@ def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
 		else:
 			while NEWSEED==SDEX:
 				NEWSEED=random.randint(0,int(len(MATCHLIST))-1)
-			NEWVALUES.append(perform_xbreed(NUMLIST,row,MATCHLIST[NEWSEED]))
+			NERO=random.randint(0,1)
+			if NERO==1:
+				NEWVALUES.append(perform_xbreed(NUMLIST,row,MATCHLIST[NEWSEED]))
+			else:
+				NEWVALUES.append(mutate_threep(NUMLIST,MATCHLIST,row))
 			APPENDS+=1
 	else:
 		NEWVALUES.append(perform_xbreed(NUMLIST,MATCHLIST[SDEX],row))
@@ -190,6 +196,25 @@ def mutate(NUMLIST,MATCHLIST,row):
 	HEADER=FIRST_VALUE[0:MUTATESPOT]
 	FOOTER=row[NEWSPOT:10].zfill(10-NEWSPOT)
 	RETSTR=HEADER+str(NEWVAL)+FOOTER
+			
+	return RETSTR
+
+def mutate_threep(NUMLIST,MATCHLIST,row):
+	SEED=random.randint(0,len(MATCHLIST)-1)
+	SEED2=random.randint(0,len(MATCHLIST)-1)
+	while SEED2==SEED:
+		SEED2=random.randint(0,len(MATCHLIST)-1)
+	FIRST_VALUE=str(MATCHLIST[SEED])
+	SECOND_VALUE=str(MATCHLIST[SEED2])
+	MUTATESPOT1=random.randint(0,8)
+	MUTATESPOT2=random.randint(MUTATESPOT1,len(row))
+	HEADER=FIRST_VALUE[0:MUTATESPOT1]
+	SECOND=SECOND_VALUE[MUTATESPOT1:MUTATESPOT2]
+	FOOTER=row[MUTATESPOT2:10].zfill(10-MUTATESPOT2)
+#	OFILE=open('mutate3p.log','a')
+#	OFILE.write(HEADER+SECOND+FOOTER+"\n")
+#	OFILE.close()
+	RETSTR=HEADER+SECOND+FOOTER
 			
 	return RETSTR
 
@@ -319,35 +344,51 @@ def print_matches(NUMLIST,MINDIST):
 			print row+'\n'
 
 	return
-NUMLIST={}
-NUMLIST=gen_initial_numbers(TC)
-NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
-CHANGETOTAL=0
-OLDLOW=0
-random.seed()
-MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
-print "Initially "+str(len(MATCHLIST))+" matches in MATCHLIST"
-print MINDIST,COUNT
-for generation in range(0,GENERATIONS):
-	NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
-	MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
-	NUMLIST,APPENDS,LENNEW,LENOLD=crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS)
-	if len(NUMLIST) < POOLSIZE:
-		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
-	for a in MATCHLIST:
-		if str(a)==PHONENUM:
-			print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,NEWVALUES "+str(LENNEW)+" OLDVALUES "+str(LENOLD)+" length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-			print MATCHLIST
-			sys.exit()	
-			
-	if (generation % 200)==0:
-		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,NEWVALUES "+str(LENNEW)+" OLDVALUES "+str(LENOLD)+" length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-#	if str(MINDIST)=='0':
-#		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
-#		break
-		
+
+
+
+
+
+
+OFILE=open("results.log","a")
+for POOLSIZE in [1000,500]:
+	for TABURATE in [0.25,0.05]:
+		for RUNNUM in range(1,NUMRUNS):
+			APPENDS=0
+			FOUND=False
+			NUMLIST={}
+			MATCHLIST=[]
+			MINDIST=100
+			NUMLIST=gen_initial_numbers(TC)
+			NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
+			CHANGETOTAL=0
+			OLDLOW=0
+			random.seed()
+			MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
+			print "Initially "+str(len(MATCHLIST))+" matches, MINDIST "+str(MINDIST)
+			for generation in range(0,GENERATIONS):
+				NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
+				MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
+				NUMLIST,APPENDS,LENNEW,LENOLD=crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS)
+				if len(NUMLIST) < POOLSIZE:
+					NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
+				for a in MATCHLIST:
+					if FOUND==True:
+						break
+					if str(a)==PHONENUM:
+						FOUND=True
+						OFILE.write(str(generation)+","+str(APPENDS)+","+str(MUTATIONRATE)+","+str(TABURATE)+","+str(POOLSIZE)+","+str(MAXMATCHSIZE)+"\n")
+						print "MATCH! Generation "+str(generation)+", "+str(APPENDS)+" numbers ,NEWVALUES "+str(LENNEW)+" OLDVALUES "+str(LENOLD)+" length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
+			#	if (generation % 200)==0:
+			#		print "Generation "+str(generation)+", "+str(APPENDS)+" numbers ,NEWVALUES "+str(LENNEW)+" OLDVALUES "+str(LENOLD)+" length "+str(len(NUMLIST))+", matchlist of "+str(len(MATCHLIST))+", OLDLOW= "+str(OLDLOW)+" MINDIST= "+str(MINDIST)+", random children added:"+str(CHANGETOTAL)
+					#print "The best distance is "+str(MINDIST)+". "+str(len(MATCHLIST))+" of these records exist."
+					#print MATCHLIST
+				if FOUND==True:
+					break
+				elif generation>=(GENERATIONS-1):
+					OFILE.write(str(generation)+",0,"+str(MUTATIONRATE)+","+str(TABURATE)+","+str(POOLSIZE)+","+str(MAXMATCHSIZE)+"\n")
 	
+		
+			
 
-
-print "The best distance is "+str(MINDIST)+". "+str(len(MATCHLIST))+" of these records exist."
-print MATCHLIST
+OFILE.close()
