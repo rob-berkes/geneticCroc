@@ -5,13 +5,13 @@ import sys
 
 MAXMATCHSIZE=100
 GENERATIONS=1000
-MUTATIONRATE=0.250
+MUTATIONRATE=0.650
 TABURATE=0.025
 POOLSIZE=500
 APPENDS=POOLSIZE
 NUMRUNS=100
 
-ENDRESULT="Rob Berkes"
+ENDRESULT="Robert Charles Berkes"
 ENDRESULT_LENGTH=len(ENDRESULT)
 
 TC=0
@@ -27,7 +27,7 @@ def perform_xbreed(NUMLIST,FIRST_VALUE,SECOND_VALUE):
 	SECOND_VALUE=str(SECOND_VALUE)
 	XOVERSPOT=random.randint(0,len(FIRST_VALUE))
 	HEADER=str(FIRST_VALUE[0:XOVERSPOT])
-	FOOTER=str(SECOND_VALUE[XOVERSPOT+1:10]).zfill(10-XOVERSPOT)
+	FOOTER=str(SECOND_VALUE[XOVERSPOT+1:len(SECOND_VALUE)]).zfill(len(SECOND_VALUE)-XOVERSPOT)
 	return str(HEADER)+str(FOOTER)
 
 def zero_numlist(NUMLIST):
@@ -64,7 +64,8 @@ def choose_swap_method(NUMLIST,MATCHLIST,row,APPENDS,NEWVALUES):
 			NEWVALUES.append(perform_xbreed(NUMLIST,row,MATCHLIST[NEWSEED]))
 			APPENDS+=1
 	else:
-		NEWVALUES.append(mutate(NUMLIST,MATCHLIST,row))
+		NEWVAL=mutate(NUMLIST,MATCHLIST,row)
+		NEWVALUES.append(NEWVAL)
 		APPENDS+=1
 	return NEWVALUES,APPENDS
 
@@ -72,10 +73,6 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS):
 	NEWVALUES=[]
 	OLDVALUES=[]
 	for row in NUMLIST:
-		if len(str(row)) > 10:
-			OLDVALUES.append(row)
-		elif len(str(row)) < 9:
-			OLDVALUES.append(row)
 		try:
 			SDEX=random.randint(0,int(len(MATCHLIST))-1)
 		except ValueError:
@@ -99,11 +96,11 @@ def crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS):
 def mutate(NUMLIST,MATCHLIST,row):
 	SEED=random.randint(0,len(MATCHLIST)-1)
 	FIRST_VALUE=str(MATCHLIST[SEED])
-	MUTATESPOT=random.randint(0,8)
+	MUTATESPOT=random.randint(0,len(row)-1)
 	NEWSPOT=MUTATESPOT+1
 	NEWVAL=random.choice(string.printable)
 	HEADER=FIRST_VALUE[0:MUTATESPOT]
-	FOOTER=row[NEWSPOT:10].zfill(10-NEWSPOT)
+	FOOTER=row[NEWSPOT:len(row)].zfill(len(row)-NEWSPOT)
 	RETSTR=HEADER+str(NEWVAL)+FOOTER
 	return RETSTR
 
@@ -129,8 +126,6 @@ def letter_count(itemL,resultL):
 	for a in string.printable:
 		NEWLIST[a]=COUNT
 		COUNT+=1
-	NEWLIST[' ']=53
-	NEWLIST['0']=54
 	return int(abs(NEWLIST[itemL]-NEWLIST[resultL])) 
 def calc_distances(NUMLIST):
 	TOTDISTANCE=0
@@ -138,7 +133,7 @@ def calc_distances(NUMLIST):
 	NUMLIST=zero_numlist(NUMLIST)
 	for item in NUMLIST:
 		DISTANCE=0
-		for a in range(0,len(item)-1):
+		for a in range(0,len(item)):
 			DISTANCE+=letter_count(item[a],ENDRESULT[a])
 		NUMLIST[item]=DISTANCE
 		TOTDISTANCE+=DISTANCE
@@ -180,15 +175,14 @@ def find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW):
 	for row in NUMLIST:
 		if COUNT > MAXMATCHSIZE :
 			break
-		if len(row)==10:
-			if NUMLIST[row] < MINDIST:
-				MATCHLIST=trim_matchlist(NUMLIST,MATCHLIST,NUMLIST[row])
-				OLDLOW=MINDIST
-				MINDIST=NUMLIST[row]
-				MATCHLIST.append(row)
-				COUNT=1
-			elif NUMLIST[row] <= MINDIST+1:
-				MATCHLIST,COUNT=choose_to_add(MATCHLIST,row,COUNT)
+		if NUMLIST[row] < MINDIST:
+			MATCHLIST=trim_matchlist(NUMLIST,MATCHLIST,NUMLIST[row])
+			OLDLOW=MINDIST
+			MINDIST=NUMLIST[row]
+			MATCHLIST.append(row)
+			COUNT=1
+		elif NUMLIST[row] <= MINDIST+1:
+			MATCHLIST,COUNT=choose_to_add(MATCHLIST,row,COUNT)
 	return MINDIST,COUNT,MATCHLIST,OLDLOW
 	
 def gen_initial_numbers(ENDRESULT_LENGTH):
@@ -203,15 +197,9 @@ def gen_new_members(NUMLIST,POOLSIZE,CURSIZE,MATCHLIST):
 	ml_SPOT=random.randint(0,9)
 	for a in range(CURSIZE,POOLSIZE+1):
 		ml_SPOT=random.randint(0,9)
-		if ml_LENGTH>1:
-			SDEX2=random.randint(0,len(MATCHLIST)-1)
-			NEWVAL=mutate(NUMLIST,MATCHLIST,MATCHLIST[SDEX2])
-			NUMLIST[NEWVAL]=0
-			TOTAL+=1
-		else:
-			NEWSTR="".join(random.choice(string.printable) for i in range(ENDRESULT_LENGTH))
-			NUMLIST[NEWSTR]=0
-			TOTAL+=1
+		NEWSTR="".join(random.choice(string.printable) for i in range(ENDRESULT_LENGTH))
+		NUMLIST[NEWSTR]=0
+		TOTAL+=1
 	return NUMLIST,TOTAL
 def print_matches(NUMLIST,MINDIST):
 	for row in NUMLIST:
@@ -234,17 +222,24 @@ MATCHLIST=[]
 MINDIST=100
 NUMLIST=gen_initial_numbers(ENDRESULT_LENGTH)
 NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
+for i in NUMLIST:
+	MATCHLIST.append(i)
+	MINDIST=NUMLIST[i]
+	break
 CHANGETOTAL=0
 OLDLOW=0
 random.seed()
 MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
 for generation in range(0,GENERATIONS):
-	print "starting Gen: "+str(generation)
+#	print "starting Gen: "+str(generation)
 	NUMLIST,TOTDISTANCE=calc_distances(NUMLIST)
+#	print MATCHLIST
 	MINDIST,COUNT,MATCHLIST,OLDLOW=find_best(NUMLIST,MINDIST,MATCHLIST,OLDLOW)
 	NUMLIST,APPENDS,LENNEW,LENOLD=crossbreed(MINDIST,NUMLIST,MATCHLIST,APPENDS)
 	if len(NUMLIST) < POOLSIZE:
 		NUMLIST,CHANGETOTAL=gen_new_members(NUMLIST,POOLSIZE,len(NUMLIST),MATCHLIST)
+
+
 	for a in MATCHLIST:
 		if FOUND==True:
 			break
@@ -254,6 +249,8 @@ for generation in range(0,GENERATIONS):
 			print str(RUNCOUNT)+", MATCH! Gen: "+str(generation)+", Numbers: "+str(APPENDS)+", NV: "+str(LENNEW)+" OV: "+str(LENOLD)+" NUMLIST: "+str(len(NUMLIST))+", MATCHLIST: "+str(len(MATCHLIST))+", OLDLOW: "+str(OLDLOW)+" MINDIST:"+str(MINDIST)+", RANDOM: "+str(CHANGETOTAL)+", TABU:"+str(TABURATE)+", POOLSIZE:"+str(POOLSIZE)+", MUTATE: "+str(MUTATIONRATE)
 	if FOUND==True:
 		break
+	elif generation%25==0:
+		print str(RUNCOUNT)+" Gen: "+str(generation)+", Numbers: "+str(APPENDS)+", NV: "+str(LENNEW)+" OV: "+str(LENOLD)+" NUMLIST: "+str(len(NUMLIST))+", MATCHLIST: "+str(len(MATCHLIST))+", OLDLOW: "+str(OLDLOW)+" MINDIST:"+str(MINDIST)+", RANDOM: "+str(CHANGETOTAL)+", TABU:"+str(TABURATE)+", POOLSIZE:"+str(POOLSIZE)+", MUTATE: "+str(MUTATIONRATE)
 	elif generation>=(GENERATIONS-1):
 		OFILE.write(str(MATCHLIST)+str(MINDIST))
 		OFILE.write(str(generation)+",0,"+str(MUTATIONRATE)+","+str(TABURATE)+","+str(POOLSIZE)+","+str(MAXMATCHSIZE)+"\n")
